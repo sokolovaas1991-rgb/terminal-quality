@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Проверка качества — тестовый терминал</title>
+<style>
+:root{
+  --bg:#f3efe3;
+  --card:#ffffff;
+  --text:#222;
+  --muted:#6b7280;
+  --accent:#f2a000;
+  --accent-dark:#d98700;
+  --border:#dedede;
+  --danger:#b91c1c;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: Arial, Helvetica, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+.shell{
+  max-width:860px;
+  margin:0 auto;
+  padding:32px 18px 60px;
+}
+.header{
+  background:var(--card);
+  border-radius:12px;
+  border-top:10px solid var(--accent);
+  padding:26px 28px 24px;
+  box-shadow:0 1px 2px rgba(0,0,0,.04);
+}
+.header h1{
+  margin:0 0 12px;
+  font-size:30px;
+  font-weight:700;
+}
+.header p{
+  margin:7px 0;
+  line-height:1.5;
+}
+.progress-wrap{
+  margin-top:20px;
+  height:8px;
+  border-radius:999px;
+  background:#eee;
+  overflow:hidden;
+}
+.progress{
+  height:100%;
+  width:0;
+  background:var(--accent);
+  transition:width .25s ease;
+}
+.card{
+  background:var(--card);
+  margin-top:16px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:26px;
+  box-shadow:0 1px 2px rgba(0,0,0,.03);
+}
+.kicker{
+  color:var(--muted);
+  font-size:14px;
+  margin-bottom:10px;
+}
+.question{
+  font-size:21px;
+  line-height:1.45;
+  margin:0 0 20px;
+  font-weight:700;
+}
+.options{
+  display:grid;
+  gap:12px;
+}
+.option{
+  width:100%;
+  text-align:left;
+  border:1px solid #cfcfcf;
+  background:#fff;
+  border-radius:10px;
+  padding:15px 16px;
+  font-size:16px;
+  line-height:1.45;
+  cursor:pointer;
+  transition:.15s ease;
+}
+.option:hover{
+  border-color:var(--accent);
+  background:#fffaf0;
+}
+.option.selected{
+  border:2px solid var(--accent);
+  background:#fff8e7;
+}
+.controls{
+  display:flex;
+  gap:12px;
+  justify-content:space-between;
+  margin-top:22px;
+}
+button.nav{
+  border:0;
+  border-radius:9px;
+  padding:12px 18px;
+  font-size:15px;
+  cursor:pointer;
+}
+.prev{
+  background:#e5e7eb;
+  color:#222;
+}
+.next{
+  background:var(--accent);
+  color:#fff;
+  margin-left:auto;
+  font-weight:700;
+}
+.next:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+.note{
+  margin-top:16px;
+  font-size:13px;
+  color:var(--muted);
+}
+.result{
+  text-align:center;
+  padding:18px 6px 6px;
+}
+.result .fail{
+  display:inline-block;
+  padding:8px 14px;
+  border-radius:999px;
+  background:#fee2e2;
+  color:var(--danger);
+  font-weight:700;
+  margin-bottom:16px;
+}
+.result h2{
+  font-size:34px;
+  margin:0 0 12px;
+}
+.result p{
+  font-size:17px;
+  line-height:1.55;
+  color:#444;
+}
+.success-mark{
+  font-size:54px;
+  margin-bottom:10px;
+}
+.late-message{
+  margin:26px auto 0;
+  max-width:560px;
+  padding:20px;
+  border-radius:12px;
+  background:#f5f5f5;
+  font-size:21px !important;
+  font-weight:700;
+  opacity:0;
+  transform:translateY(8px);
+  transition:opacity .55s ease, transform .55s ease;
+}
+.late-message.show{
+  opacity:1;
+  transform:translateY(0);
+}
+.summary{
+  margin-top:24px;
+  text-align:left;
+  background:#fafafa;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:18px;
+}
+.summary h3{
+  margin:0 0 12px;
+}
+.summary ol{
+  margin:0;
+  padding-left:22px;
+}
+.summary li{
+  margin:8px 0;
+  line-height:1.45;
+}
+.restart{
+  margin-top:22px;
+  background:#222;
+  color:#fff;
+  border:0;
+  border-radius:9px;
+  padding:12px 18px;
+  font-size:15px;
+  cursor:pointer;
+}
+@media(max-width:600px){
+  .header,.card{padding:20px}
+  .header h1{font-size:25px}
+  .question{font-size:19px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <section class="header">
+    <h1>Проверка знаний: качество</h1>
+    <p>Перед вами 7 рабочих ситуаций по проверке вывода в актив и проверке отрисовок.</p>
+    
+    <div class="progress-wrap"><div class="progress" id="progress"></div></div>
+  </section>
+
+  <section class="card" id="app"></section>
+</div>
+
+<script>
+const questions = [
+{
+  text: `Дом передан на проверку для вывода в актив. В активных квартирах цены заполнены, но у части квартир цена выглядит корректно визуально только потому, что рядом есть другие ненулевые значения. При этом в выборке встречается значение 0, а дата актуальности у остальных квартир свежая. Какое действие наиболее корректно?`,
+  options: [
+    `Считать проверку пройденной, если нулевая цена встречается единично и остальные квартиры заполнены`,
+    `Вывести дом в актив, а нулевую цену оставить как локальную ошибку для последующей проверки`,
+    `Остановить завершение проверки и отправить ошибку на доработку, затем перепроверить исправление`,
+    `Проверить только тип цены: если он указан верно, нулевая цена не блокирует вывод`
+  ],
+  correct: 2
+},
+{
+  text: `В квартирографии два типа имеют одинаковую геометрию и одинаковые внутренние параметры, но общая площадь у экземпляров отличается. Оператор создал для них два отдельных типа. В комментариях нет указания, что они должны считаться разными. Что является наиболее корректным выводом?`,
+  options: [
+    `Разные общие площади автоматически означают разные типы, доработка не нужна`,
+    `Нужно проверить, не созданы ли лишние типы: одинаковый план при разной общей площади сам по себе не требует нового типа`,
+    `Типы допустимо оставить раздельными, если квартиры находятся на разных этажах`,
+    `Разделение типов считается ошибкой только тогда, когда отличаются названия секций`
+  ],
+  correct: 1
+},
+{
+  text: `В квартирографии указан «Корпус 1». На отрисованном поэтажном плане стоит подпись «Корпус 2», однако набор квартир, этаж, секция и расположение планировок соответствуют исходнику. Что важнее при завершении проверки?`,
+  options: [
+    `Совпадение состава квартир важнее подписи, поэтому можно принять`,
+    `Если секция указана верно, номер корпуса можно считать технической неточностью`,
+    `Подпись корпуса должна совпадать с квартирографией, поэтому требуется исправление`,
+    `Ошибка существенна только если одновременно неверно указано название секции`
+  ],
+  correct: 2
+},
+{
+  text: `Исходный план и квартирография относятся к секции 3. На отрисовке геометрия правильная, но в подписи указана секция 2. При этом оператор в системе создал правильную секцию. Кому логичнее адресовать доработку?`,
+  options: [
+    `Оператору, потому что именно он отвечает за структуру секций в системе`,
+    `Дизайнеру, потому что ошибка находится в подписи на самой отрисовке`,
+    `Модератору, потому что только он может решить, считать ли подпись существенной`,
+    `Никому: если геометрия и структура в системе правильные, подпись не влияет на проверку`
+  ],
+  correct: 1
+},
+{
+  text: `В карточке квартиры общая площадь 54,80 м². На отрисовке указано 54,08 м². Все внутренние площади, санузел, балкон и расположение окон совпадают. Как трактовать ситуацию?`,
+  options: [
+    `Как допустимую погрешность, если внутренние площади совпадают`,
+    `Как ошибку отрисовки, поскольку значение общей площади должно совпадать с данными квартиры`,
+    `Как ошибку оператора, потому что карточка квартиры считается первичной причиной расхождения`,
+    `Как несущественную ошибку, если разница меньше 1 м²`
+  ],
+  correct: 1
+},
+{
+  text: `Проверка дома фактически завершена, но остаётся нерешённый вопрос, который напрямую влияет на возможность вывода на сайт. Остальные пункты проверены, ошибок по квартирографии нет. Как корректнее завершить текущий этап?`,
+  options: [
+    `Вывести дом в актив, потому что техническая проверка завершена`,
+    `Закрыть проверку как полностью выполненную и оставить вопрос в комментарии`,
+    `Не завершать вывод как обычный успешный: использовать предусмотренный сценарий ожидания/отложенного вывода до решения вопроса`,
+    `Перевести карточку на этап отрисовки, чтобы не задерживать процесс`
+  ],
+  correct: 2
+},
+{
+  text: `На поэтажном плане подписи корпуса и секции верные, метражи совпадают, направление окон выставлено корректно. Однако одна из планировок визуально стоит в другой позиции относительно порядка квартир на этаже, хотя сама планировка отрисована правильно. Какой вариант наиболее корректен?`,
+  options: [
+    `Принять: правильная геометрия важнее позиции на поэтажном плане`,
+    `Принять, если направление окон у этой квартиры совпадает`,
+    `Считать ошибкой: планировка должна быть выложена на своём месте и в правильном направлении`,
+    `Считать ошибкой только в случае, если одновременно нарушен порядок типов слева`
+  ],
+  correct: 2
+}
+];
+
+let current = 0;
+let answers = Array(questions.length).fill(null);
+
+function render(){
+  const app = document.getElementById('app');
+  const progress = document.getElementById('progress');
+
+  if(current >= questions.length){
+    progress.style.width = '100%';
+    showResult();
+    return;
+  }
+
+  progress.style.width = ((current)/questions.length*100) + '%';
+  const q = questions[current];
+
+  app.innerHTML = `
+    <div class="kicker">Вопрос ${current+1} из ${questions.length}</div>
+    <h2 class="question">${q.text}</h2>
+    <div class="options">
+      ${q.options.map((opt,i)=>`
+        <button class="option ${answers[current]===i?'selected':''}" data-i="${i}">
+          ${String.fromCharCode(1040+i)}. ${opt}
+        </button>
+      `).join('')}
+    </div>
+    <div class="controls">
+      ${current>0?'<button class="nav prev" id="prev">Назад</button>':''}
+      <button class="nav next" id="next" ${answers[current]===null?'disabled':''}>
+        ${current===questions.length-1?'Завершить':'Далее'}
+      </button>
+    </div>
+    <div class="note">Выберите один наиболее корректный вариант.</div>
+  `;
+
+  document.querySelectorAll('.option').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      answers[current] = Number(btn.dataset.i);
+      render();
+    });
+  });
+
+  const prev=document.getElementById('prev');
+  if(prev) prev.onclick=()=>{current--;render();};
+
+  document.getElementById('next').onclick=()=>{
+    if(answers[current]!==null){
+      current++;
+      render();
+    }
+  };
+}
+
+function showResult(){
+  const app = document.getElementById('app');
+  const score = answers.reduce((acc,a,i)=>acc+(a===questions[i].correct?1:0),0);
+  const passed = score === questions.length;
+
+  if (passed) {
+    app.innerHTML = `
+      <div class="result">
+        <div class="success-mark">🎉</div>
+        <h2>Все ответы верны!</h2>
+        <p><strong>7 из 7</strong></p>
+        <p class="late-message" id="lateMessage">Но другой соискатель ответил раньше 😔</p>
+        <button class="restart" id="restart">Пройти ещё раз</button>
+      </div>
+    `;
+
+    setTimeout(() => {
+      const msg = document.getElementById('lateMessage');
+      if (msg) msg.classList.add('show');
+    }, 1800);
+  } else {
+    app.innerHTML = `
+      <div class="result">
+        <div class="fail">Результат проверки</div>
+        <h2>Вы не проходите</h2>
+        <p>Правильных ответов: <strong>${score} из ${questions.length}</strong>.</p>
+
+        <div class="summary">
+          <h3>Ваши ответы</h3>
+          <ol>
+            ${questions.map((q,i)=>{
+              const chosen = answers[i];
+              const ok = chosen === q.correct;
+              return `<li>${ok?'Верно':'Ошибка'} — ${q.options[chosen] || 'нет ответа'}</li>`;
+            }).join('')}
+          </ol>
+        </div>
+
+        <button class="restart" id="restart">Пройти ещё раз</button>
+      </div>
+    `;
+  }
+
+  document.getElementById('restart').onclick=()=>{
+    current=0;
+    answers=Array(questions.length).fill(null);
+    render();
+  };
+}
+
+render();
+</script>
+</body>
+</html>
