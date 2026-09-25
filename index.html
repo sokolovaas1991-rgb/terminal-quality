@@ -6,6 +6,12 @@ const questions=[{"title": "Сравните двери на исходном п
 let current=0;const answers=new Array(questions.length).fill(null);const title=document.getElementById('title'),content=document.getElementById('content'),options=document.getElementById('options'),next=document.getElementById('next'),back=document.getElementById('back');
 function render(){const q=questions[current];title.textContent=q.title;document.getElementById('progressText').textContent='Вопрос '+(current+1)+' из '+questions.length;const pct=Math.round((current/questions.length)*100);document.getElementById('progressPct').textContent=pct+'%';document.getElementById('bar').style.width=pct+'%';content.innerHTML=q.image?'<div class="visual"><img src="'+q.image+'" alt="Планировки к вопросу '+(current+1)+'"></div>':'<div class="logic"><div class="logicnote">Выберите вариант, который лучше всего описывает ваши действия в этой ситуации.</div></div>';options.innerHTML='';q.opts.forEach((o,i)=>{const el=document.createElement('div');el.className='option'+(answers[current]===i?' selected':'');const letters=['А','Б','В','Г'];el.innerHTML='<span class="radio"></span><span><b>'+letters[i]+'.</b> '+o+'</span>';el.onclick=()=>{answers[current]=i;render()};options.appendChild(el)});back.disabled=current===0;next.disabled=answers[current]===null;next.textContent=current===questions.length-1?'Завершить':'Далее →'}
 back.onclick=()=>{if(current>0){current--;render()}};next.onclick=()=>{if(answers[current]===null)return;if(current<questions.length-1){current++;render()}else finish()};function finish(){
-document.getElementById('quiz').innerHTML='<div class="final"><div class="finalicon">✓</div><h2>Тест завершён</h2><p>Результаты теста отправлены заказчику.</p></div>';
+  document.getElementById('testArea').style.display='none';
+  const final=document.getElementById('final');
+  final.style.display='flex';
+  document.getElementById('finalIcon').textContent='✓';
+  document.getElementById('finalTitle').textContent='Тест завершён';
+  document.getElementById('finalText').textContent='Результаты теста отправлены заказчику.';
 }
+render();
 </script></body></html>
